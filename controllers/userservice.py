@@ -45,7 +45,10 @@ Remarks:
    auth request but no policy check
 
 """
-
+#------------------
+#define a global var for pass validate
+global passtmp
+#------------------
 import base64
 import logging
 
@@ -59,6 +62,7 @@ except ImportError:
 from pylons import request
 from pylons import response
 from pylons import config
+from pylons import session
 from pylons import tmpl_context as c
 
 
@@ -830,8 +834,15 @@ class UserserviceController(BaseController):
             # -------------------------------------------------------------- --
 
             password = param['password']
+	   
+	#---------------------------------------- 
+	    #save tmp password for setpin
+	    global passtmp
+	    #passtmp = hash(password)
+	    passtmp = password
+        #----------------------------------------
 
-            if self.mfa_login:
+	    if self.mfa_login:
 
                 return self._login_with_otp(user, password, param)
 
@@ -1369,11 +1380,20 @@ class UserserviceController(BaseController):
             checkPolicyPre('selfservice', 'usersetpin', param, self.authUser)
 
             try:
-                userPin = param["userpin"]
+                #userPin = param["userpin"]
                 serial = param["serial"]
             except KeyError as exx:
                 raise ParameterError("Missing parameter: '%s'" % exx.message)
-
+	   
+	#----------------------------
+	#Check the password whether matching the OpenDJ's
+	    global passtmp
+ 
+	    #passcheck = passtmp
+            userPin = passtmp
+            #if (hash(userPin) != passcheck):
+	    #	return sendError(response,"Please use your IDM password.")
+	#-----------------------------
             th = TokenHandler()
             if (True == th.isTokenOwner(serial, self.authUser)):
                 log.info("user %s@%s is setting the OTP PIN "
